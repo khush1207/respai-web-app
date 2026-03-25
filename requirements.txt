@@ -6,3 +6,4 @@ tensorflow-cpu
 Werkzeug
 gunicorn
 gdown
+scikit-learn
