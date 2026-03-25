@@ -7,20 +7,41 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from werkzeug.utils import secure_filename
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
+import gdown
 
 app = Flask(__name__)
-app.secret_key = "super_secret_key"  # Required for flash messages
+app.secret_key = "super_secret_key"
 app.config['UPLOAD_FOLDER'] = 'uploads'
-
-# Ensure upload folder exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # ===============================
-# LOAD MODELS
+# 1. SETUP MODEL PATHS
+# ===============================
+MODEL_DIR = "model"
+# Make sure your GitHub folder is named "model" (no 's')
+RISK_MODEL_PATH = os.path.join(MODEL_DIR, "risk_model.pkl")
+XRAY_MODEL_PATH = os.path.join(MODEL_DIR, "pneumonia_model.h5")
+
+os.makedirs(MODEL_DIR, exist_ok=True)
+
+# ===============================
+# 2. DOWNLOAD FROM GOOGLE DRIVE
+# ===============================
+if not os.path.exists(XRAY_MODEL_PATH):
+    print("Downloading heavy model from Google Drive...")
+    file_id = '1RNe0FkjhxbmQ1qeVtX5d2aQBW4K-sVOZ'
+    url = f'https://drive.google.com/uc?id={file_id}'
+    gdown.download(url, XRAY_MODEL_PATH, quiet=False)
+    print("Download complete!")
+
+# ===============================
+# 3. LOAD BOTH MODELS
 # ===============================
 try:
-    cnn_model = load_model("models/pneumonia_model.h5")
-    risk_model = joblib.load("models/risk_model.pkl")
+    # Changed from cnn_model to xray_model, and using the correct path
+    cnn_model = load_model(XRAY_MODEL_PATH)
+    risk_model = joblib.load(RISK_MODEL_PATH)
+    print("Models loaded successfully!")
 except Exception as e:
     print(f"Error loading models: {e}")
 
