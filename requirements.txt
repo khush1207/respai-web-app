@@ -1,0 +1,7 @@
+Flask
+numpy
+requests
+joblib
+tensorflow-cpu
+Werkzeug
+gunicorn
