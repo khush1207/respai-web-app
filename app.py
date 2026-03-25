@@ -35,12 +35,23 @@ if not os.path.exists(XRAY_MODEL_PATH):
     print("Download complete!")
 
 # ===============================
-# 3. LOAD BOTH MODELS
+# 3. LOAD BOTH MODELS SAFELY
 # ===============================
-# Changed from cnn_model to xray_model, and using the correct path
-cnn_model = load_model(XRAY_MODEL_PATH)
-risk_model = joblib.load(RISK_MODEL_PATH)
-print("Models loaded successfully!")
+
+# 1. Load the Risk Model FIRST
+try:
+    risk_model = joblib.load(RISK_MODEL_PATH)
+    print("✅ Risk model loaded successfully!")
+except Exception as e:
+    print(f"❌ Error loading Risk model: {e}")
+
+# 2. Load the X-Ray Model separately
+try:
+    # compile=False forces TensorFlow to ignore version mismatch configs
+    cnn_model = load_model(XRAY_MODEL_PATH, compile=False)
+    print("✅ X-Ray model loaded successfully!")
+except Exception as e:
+    print(f"❌ Error loading X-Ray model: {e}")
 
 # ===============================
 # API & HELPER FUNCTIONS
