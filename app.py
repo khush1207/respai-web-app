@@ -37,14 +37,10 @@ if not os.path.exists(XRAY_MODEL_PATH):
 # ===============================
 # 3. LOAD BOTH MODELS
 # ===============================
-try:
-    # Changed from cnn_model to xray_model, and using the correct path
-    cnn_model = load_model(XRAY_MODEL_PATH)
-    risk_model = joblib.load(RISK_MODEL_PATH)
-    print("Models loaded successfully!")
-except Exception as e:
-    print(f"Error loading models: {e}")
-
+# Changed from cnn_model to xray_model, and using the correct path
+cnn_model = load_model(XRAY_MODEL_PATH)
+risk_model = joblib.load(RISK_MODEL_PATH)
+print("Models loaded successfully!")
 
 # ===============================
 # API & HELPER FUNCTIONS
