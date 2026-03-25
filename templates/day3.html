@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="mb-4 pb-4 border-bottom border-2">
+    <h4 class="text-center mb-3 accent-title">Previous Assessment (Day 2)</h4>
+
+    <div class="text-center mb-2 fs-5">
+        Risk Status:
+        {% if risk >= 7 %}
+            <span class="text-danger fw-bold">HIGH RISK</span>
+        {% elif risk >= 4 %}
+            <span style="color: #d4a017;" class="fw-bold">MODERATE RISK</span>
+        {% else %}
+            <span class="text-success fw-bold">LOW RISK</span>
+        {% endif %}
+        <span class="text-muted">({{ risk }}/10)</span>
+    </div>
+
+    <div class="d-flex justify-content-center w-100 mt-3 mb-4">
+        <div id="gauge_chart_day3"></div>
+    </div>
+
+    <div class="alert shadow-sm mb-4" style="background-color: #F4F9F9; border: 1px solid #BBE1FA; border-left: 5px solid #3282B8;">
+        <h5 class="fw-bold mb-3" style="color: #0F4C75;">🩺 Recommended Actions</h5>
+        <ul class="mb-0" style="line-height: 1.8;">
+            {% for pre in precautions %}
+                <li>{{ pre }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<form method="POST" enctype="multipart/form-data">
+    <h4 class="mb-3 medical-title">Day 3 Symptoms & X-Ray</h4>
+    {% include 'symptoms_snippet.html' %}
+    <hr class="my-4">
+
+    <h5 class="medical-title fw-bold mb-3">Diagnostic Imaging</h5>
+    {% if xray_required %}
+        <div class="alert alert-danger fw-bold shadow-sm">
+            <strong>⚠ High risk detected ({{ risk }}/10)!</strong> X-ray upload is REQUIRED.
+        </div>
+        <input type="file" name="xray" class="form-control mb-4 border-danger" accept="image/*" required>
+    {% else %}
+        <div class="alert alert-info shadow-sm" style="background-color: #EBF5FB; border-color: #BBE1FA; color: #0F4C75;">
+            <strong>ℹ Optional:</strong> Upload X-ray image for higher accuracy.
+        </div>
+        <input type="file" name="xray" class="form-control mb-4" accept="image/*">
+    {% endif %}
+
+    <button type="submit" class="btn btn-primary w-100 py-3 fw-bold shadow-sm fs-5" style="background-color: #0F4C75; border: none;">Run Final Prediction</button>
+</form>
+
+<script>
+  google.charts.load('current', {'packages':['gauge']});
+  google.charts.setOnLoadCallback(drawChartDay3);
+
+  function drawChartDay3() {
+    var data = google.visualization.arrayToDataTable([
+      ['Label', 'Value'],
+      ['', {{ risk }}]
+    ]);
+
+    // Width shrunk to 250 to perfectly center the gauge
+    var options = {
+      width: 250, height: 160,
+      redFrom: 7, redTo: 10,
+      yellowFrom: 4, yellowTo: 7,
+      greenFrom: 0, greenTo: 4,
+      minorTicks: 1,
+      max: 10
+    };
+
+    var chart = new google.visualization.Gauge(document.getElementById('gauge_chart_day3'));
+    chart.draw(data, options);
+  }
+</script>
+{% endblock %}

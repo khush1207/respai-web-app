@@ -1,0 +1,43 @@
+
+
+
+<div class="row mt-3">
+    <div class="col-md-6">
+        <label class="fw-bold">Cough Severity: <span id="cough_val" class="text-danger fs-5">0</span></label>
+        <small class="text-muted d-block" style="font-size: 0.75rem;">(0: None | 1: Low | 2: Medium | 3: High)</small>
+        <input type="range" class="form-range mb-4" name="cough" min="0" max="3" value="0" oninput="updateVal(this.value, 'cough_val')">
+
+        <label class="fw-bold">Breathlessness Level: <span id="breath_val" class="text-danger fs-5">0</span></label>
+        <small class="text-muted d-block" style="font-size: 0.75rem;">(0: None | 1: Low | 2: Medium | 3: High)</small>
+        <input type="range" class="form-range mb-4" name="breath" min="0" max="3" value="0" oninput="updateVal(this.value, 'breath_val')">
+
+        <label class="fw-bold">Chest Pain Level: <span id="chest_val" class="text-danger fs-5">0</span></label>
+        <small class="text-muted d-block" style="font-size: 0.75rem;">(0: None | 1: Low | 2: Medium | 3: High)</small>
+        <input type="range" class="form-range mb-4" name="chest" min="0" max="3" value="0" oninput="updateVal(this.value, 'chest_val')">
+
+        <label class="fw-bold">Fatigue Level: <span id="fatigue_val" class="text-danger fs-5">0</span></label>
+        <small class="text-muted d-block" style="font-size: 0.75rem;">(0: None | 1: Low | 2: Medium | 3: High)</small>
+        <input type="range" class="form-range mb-4" name="fatigue" min="0" max="3" value="0" oninput="updateVal(this.value, 'fatigue_val')">
+    </div>
+
+    <div class="col-md-6">
+        <label class="fw-bold">Fever Temp (°C):</label>
+        <input type="number" class="form-control mb-4" name="fever" min="30.0" max="45.0" step="0.1" value="37.0">
+
+        <label class="fw-bold d-block">Wheezing:</label>
+        <div class="mb-4">
+            <input type="radio" class="btn-check" name="wheezing" id="w0" value="0" checked>
+            <label class="btn btn-outline-primary btn-sm px-3" for="w0">0 (No)</label>
+            <input type="radio" class="btn-check" name="wheezing" id="w1" value="1">
+            <label class="btn btn-outline-primary btn-sm px-3" for="w1">1 (Yes)</label>
+        </div>
+
+        <label class="fw-bold d-block">Sore Throat:</label>
+        <div>
+            <input type="radio" class="btn-check" name="sore" id="s0" value="0" checked>
+            <label class="btn btn-outline-primary btn-sm px-3" for="s0">0 (No)</label>
+            <input type="radio" class="btn-check" name="sore" id="s1" value="1">
+            <label class="btn btn-outline-primary btn-sm px-3" for="s1">1 (Yes)</label>
+        </div>
+    </div>
+</div>

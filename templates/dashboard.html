@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h3 class="mb-4 medical-title text-center text-uppercase pb-3 border-bottom border-2">Patient Diagnostic Report</h3>
+
+<div class="d-flex justify-content-center w-100 mb-4">
+    <div id="gauge_chart_final"></div>
+</div>
+
+<div class="text-center mb-5 fs-5">
+    <span class="fw-bold me-2">Current Condition:</span>
+    {% if data.disease == "Normal" %}
+        <span class="badge bg-success px-3 py-2 fs-6 shadow-sm">Normal</span>
+    {% else %}
+        <span class="badge bg-danger px-3 py-2 fs-6 shadow-sm">Abnormal</span>
+    {% endif %}
+</div>
+
+{% if data.pneumonia is not none and data.asthma is not none %}
+<div class="mb-4 px-3">
+    <label class="fw-bold mb-1 medical-title">Pneumonia Probability: {{ (data.pneumonia * 100) | round(1) }}%</label>
+    <div class="progress mb-3" style="height: 25px; background-color: #e9ecef; border-radius: 6px;">
+        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
+             style="width: {{ data.pneumonia * 100 }}%; background-color: #d9534f;"></div>
+    </div>
+
+    <label class="fw-bold mb-1 medical-title">Asthma Probability: {{ (data.asthma * 100) | round(1) }}%</label>
+    <div class="progress mb-4" style="height: 25px; background-color: #e9ecef; border-radius: 6px;">
+        <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" role="progressbar"
+             style="width: {{ data.asthma * 100 }}%;"></div>
+    </div>
+</div>
+{% endif %}
+
+<div class="alert shadow-sm mb-4" style="background-color: #F4F9F9; border: 1px solid #BBE1FA; border-left: 5px solid #3282B8;">
+    <h5 class="fw-bold mb-3" style="color: #0F4C75;">🩺 Final Treatment Plan & Precautions</h5>
+    <ul class="mb-0" style="line-height: 1.8;">
+        {% for pre in data.precautions %}
+            {% if "URGENT" in pre %}
+                <li class="text-danger fw-bold mb-2" style="list-style: none; margin-left: -20px;">{{ pre }}</li>
+            {% else %}
+                <li>{{ pre }}</li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+</div>
+
+<div class="text-center mt-4">
+    <a href="/day1" class="btn w-100 py-3 fw-bold shadow-sm fs-5 text-white" style="background-color: #0F4C75; border-radius: 8px; text-decoration: none;">
+        ⟳ Start New Assessment
+    </a>
+</div>
+
+<script>
+  google.charts.load('current', {'packages':['gauge']});
+  google.charts.setOnLoadCallback(drawChartFinal);
+
+  function drawChartFinal() {
+    var data = google.visualization.arrayToDataTable([
+      ['Label', 'Value'],
+      ['', {{ data.risk }}]
+    ]);
+
+    // Width set to 250px to perfectly center the gauge
+    var options = {
+      width: 250, height: 160,
+      redFrom: 7, redTo: 10,
+      yellowFrom: 4, yellowTo: 7,
+      greenFrom: 0, greenTo: 4,
+      minorTicks: 1,
+      max: 10
+    };
+
+    var chart = new google.visualization.Gauge(document.getElementById('gauge_chart_final'));
+    chart.draw(data, options);
+  }
+</script>
+{% endblock %}

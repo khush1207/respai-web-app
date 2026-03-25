@@ -1,0 +1,248 @@
+import os
+import json
+import numpy as np
+import requests
+import joblib
+from flask import Flask, render_template, request, redirect, url_for, flash
+from werkzeug.utils import secure_filename
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing import image
+
+app = Flask(__name__)
+app.secret_key = "super_secret_key"  # Required for flash messages
+app.config['UPLOAD_FOLDER'] = 'uploads'
+
+# Ensure upload folder exists
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# ===============================
+# LOAD MODELS
+# ===============================
+try:
+    cnn_model = load_model("models/pneumonia_model.h5")
+    risk_model = joblib.load("models/risk_model.pkl")
+except Exception as e:
+    print(f"Error loading models: {e}")
+
+
+# ===============================
+# API & HELPER FUNCTIONS
+# ===============================
+def get_aqi(city):
+    API_KEY = "d308fee30aee063143b15f83368e580c"
+    try:
+        geo_url = f"http://api.openweathermap.org/geo/1.0/direct?q={city}&limit=1&appid={API_KEY}"
+        geo_data = requests.get(geo_url, timeout=5).json()
+        if not geo_data: return 3
+        lat, lon = geo_data[0]["lat"], geo_data[0]["lon"]
+        aqi_url = f"http://api.openweathermap.org/data/2.5/air_pollution?lat={lat}&lon={lon}&appid={API_KEY}"
+        aqi_data = requests.get(aqi_url, timeout=5).json()
+        return aqi_data["list"][0]["main"]["aqi"]
+    except:
+        return 3
+
+
+def get_weather(city):
+    API_KEY = "d308fee30aee063143b15f83368e580c"
+    try:
+        url = "https://api.openweathermap.org/data/2.5/weather"
+        params = {"q": city, "appid": API_KEY, "units": "metric"}
+        data = requests.get(url, params=params, timeout=5).json()
+        if "main" not in data: return 25.0, 60.0
+        return data["main"]["temp"], data["main"]["humidity"]
+    except:
+        return 25.0, 60.0
+
+
+def get_risk_category(score):
+    if score < 4:
+        return "Low Risk"
+    elif score < 7:
+        return "Moderate Risk"
+    else:
+        return "High Risk"
+
+
+def get_precautions(score):
+    if score < 3:
+        return ["Stay hydrated", "Monitor symptoms"]
+    elif score < 7:
+        return ["Take rest", "Avoid pollution", "Monitor fever"]
+    else:
+        return ["Consult doctor", "X-ray recommended", "Monitor breathing"]
+
+
+def predict_xray(path):
+    img = image.load_img(path, target_size=(224, 224))
+    img = image.img_to_array(img) / 255.0
+    img = np.expand_dims(img, axis=0)
+    return cnn_model.predict(img)[0][0]
+
+
+def build_features(prev_day, curr_day):
+    symptoms = ["breath", "chest", "cough", "fatigue", "wheezing", "sore", "fever", "aqi"]
+    feature_list = []
+    for s in symptoms:
+        feature_list.append(curr_day[s])
+        feature_list.append(abs(curr_day[s] - prev_day[s]))
+    return np.array([feature_list])
+
+
+def extract_symptoms(form):
+    return {
+        "cough": int(form.get("cough", 0)),
+        "breath": int(form.get("breath", 0)),
+        "chest": int(form.get("chest", 0)),
+        "fatigue": int(form.get("fatigue", 0)),
+        "fever": float(form.get("fever", 37.0)),
+        "wheezing": int(form.get("wheezing", 0)),
+        "sore": int(form.get("sore", 0))
+    }
+
+# --- NEW HELPER FUNCTION ---
+def get_enhanced_precautions(risk, is_final=False, disease="Normal"):
+    precautions = []
+    if risk < 4:
+        precautions = [
+            "Get plenty of rest and sleep.",
+            "Stay well-hydrated with warm fluids.",
+            "Monitor your temperature and symptoms daily.",
+            "Maintain good hand hygiene and wear a mask if coughing."
+        ]
+    elif risk < 7:
+        precautions = [
+            "Isolate yourself from vulnerable family members.",
+            "Use a humidifier or inhale steam to ease breathing.",
+            "Monitor your blood oxygen levels using a pulse oximeter.",
+            "Avoid cold beverages, dust, and smoking.",
+            "Consult a healthcare provider if breathlessness increases."
+        ]
+    else:
+        precautions = [
+            "Get a diagnostic chest X-ray as soon as possible.",
+            "Do not self-medicate for severe breathlessness.",
+            "Keep emergency contact numbers readily available.",
+            "Restrict all physical exertion and stay in bed."
+        ]
+
+    # Add a strong doctor warning for the final dashboard if Abnormal
+    if is_final and disease == "Abnormal":
+        precautions.insert(0,
+                           "🚨 URGENT: Your diagnostic results indicate an abnormal respiratory condition. Please consult a pulmonologist or visit a medical clinic immediately.")
+
+    return precautions
+
+# ===============================
+# ROUTES
+# ===============================
+@app.route("/")
+def index():
+    return redirect(url_for('day1'))
+
+
+@app.route("/day1", methods=["GET", "POST"])
+def day1():
+    if request.method == "POST":
+        city = request.form.get("city")
+        temperature, humidity = get_weather(city)
+        aqi = get_aqi(city)
+
+        d1 = {
+            "age": int(request.form.get("age")),
+            "city": city,
+            "smoking": int(request.form.get("smoking")),
+            "temperature": temperature,
+            "humidity": humidity,
+            "aqi": aqi,
+            **extract_symptoms(request.form)
+        }
+        json.dump(d1, open("day1.json", "w"))
+        flash(f"Data saved. Weather: {temperature}°C, AQI: {aqi}. Proceed to Day 2.", "success")
+        return redirect(url_for('day2'))
+    return render_template("day1.html")
+
+
+# --- UPDATED ROUTES ---
+@app.route("/day2", methods=["GET", "POST"])
+def day2():
+    if not os.path.exists("day1.json"):
+        flash("Please complete Day 1 first.", "danger")
+        return redirect(url_for('day1'))
+
+    d1 = json.load(open("day1.json"))
+
+    if request.method == "POST":
+        d2 = {**d1, **extract_symptoms(request.form)}
+        with open("day2.json", "w") as f:
+            json.dump(d2, f)
+        return redirect(url_for('day3'))
+
+    # Basic precautions to show after Day 1
+    basic_precautions = [
+        "Stay hydrated and get plenty of rest.",
+        "Monitor your symptoms closely over the next 24 hours.",
+        "Eat a balanced diet to support your immune system.",
+        "Avoid exposure to cold air or pollutants."
+    ]
+    return render_template("day2.html", precautions=basic_precautions)
+
+
+@app.route("/day3", methods=["GET", "POST"])
+def day3():
+    if not os.path.exists("day1.json") or not os.path.exists("day2.json"):
+        flash("Please complete previous days first.", "danger")
+        return redirect(url_for('day1'))
+
+    d1 = json.load(open("day1.json"))
+    d2 = json.load(open("day2.json"))
+
+    f2 = build_features(d1, d2)
+    risk2 = float(risk_model.predict(f2)[0])
+    risk2_rounded = round(min(max(risk2, 1), 10), 2)
+    xray_required = risk2_rounded >= 7
+
+    # Get dynamic precautions based on Day 2 risk
+    day2_precautions = get_enhanced_precautions(risk2_rounded)
+
+    if request.method == "POST":
+        d3 = {**d2, **extract_symptoms(request.form)}
+        f3 = build_features(d2, d3)
+        risk3 = float(risk_model.predict(f3)[0])
+
+        pneumonia_prob = None
+        asthma_prob = None
+        disease = "Normal"
+
+        xray_file = request.files.get("xray")
+        if xray_file and xray_file.filename != '':
+            filename = secure_filename(xray_file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            xray_file.save(filepath)
+
+            raw_pneumonia = float(predict_xray(filepath))
+            raw_asthma = 1.0 - raw_pneumonia
+            risk_multiplier = min(max(risk3 / 10.0, 0.1), 1.0)
+            pneumonia_prob = raw_pneumonia * risk_multiplier
+            asthma_prob = raw_asthma * risk_multiplier
+
+            if pneumonia_prob >= 0.5 or asthma_prob >= 0.5:
+                disease = "Abnormal"
+            else:
+                disease = "Abnormal" if risk3 >= 7 else "Normal"
+        else:
+            disease = "Abnormal" if risk3 >= 7 else "Normal"
+
+        dashboard_data = {
+            "pneumonia": round(pneumonia_prob, 2) if pneumonia_prob is not None else None,
+            "asthma": round(asthma_prob, 2) if asthma_prob is not None else None,
+            "disease": disease,
+            "risk": round(min(max(risk3, 1), 10), 2),
+            # Fetch final detailed precautions
+            "precautions": get_enhanced_precautions(risk3, is_final=True, disease=disease)
+        }
+        return render_template("dashboard.html", data=dashboard_data)
+
+    return render_template("day3.html", xray_required=xray_required, risk=risk2_rounded, precautions=day2_precautions)
+
+if __name__ == "__main__":
+    app.run(debug=True)
