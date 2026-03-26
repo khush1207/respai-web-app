@@ -1,12 +1,13 @@
 import os
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
 import json
 import numpy as np
 import requests
 import joblib
 from flask import Flask, render_template, request, redirect, url_for, flash
 from werkzeug.utils import secure_filename
-from keras.models import load_model
-from keras.preprocessing import image
+from tensorflow.ensorkeras.models import load_model
+from tensorflow.keras.preprocessing import image
 import gdown
 
 app = Flask(__name__)
