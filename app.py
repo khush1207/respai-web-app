@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 from PIL import Image
 
 # Use the lightweight TFLite runtime
-import tflite_runtime.interpreter as tflite
+import tensorflow.lite as tflite
 
 app = Flask(__name__)
 app.secret_key = "super_secret_key"
