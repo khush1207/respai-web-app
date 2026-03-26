@@ -1,17 +1,15 @@
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # Only show Errors
 import json
 import numpy as np
 import requests
 import joblib
+import gc
 from flask import Flask, render_template, request, redirect, url_for, flash
 from werkzeug.utils import secure_filename
-import gdown
+from PIL import Image
 
-# NEW MODERN IMPORTS (Keras 3)
-import keras
-from keras.models import load_model
-from keras.preprocessing import image
+# Use the lightweight TFLite runtime
+import tflite_runtime.interpreter as tflite
 
 app = Flask(__name__)
 app.secret_key = "super_secret_key"
@@ -22,21 +20,10 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # 1. SETUP MODEL PATHS
 # ===============================
 MODEL_DIR = "model"
-# Make sure your GitHub folder is named "model" (no 's')
 RISK_MODEL_PATH = os.path.join(MODEL_DIR, "risk_model.pkl")
-XRAY_MODEL_PATH = os.path.join(MODEL_DIR, "pneumonia_model.keras")
+XRAY_MODEL_PATH = os.path.join(MODEL_DIR, "pneumonia_model.tflite")
 
-os.makedirs(MODEL_DIR, exist_ok=True)
-
-# ===============================
-# 2. DOWNLOAD FROM GOOGLE DRIVE
-# ===============================
-if not os.path.exists(XRAY_MODEL_PATH):
-    print("Downloading heavy model from Google Drive...")
-    file_id = '1OKch6xQ4I-cF8ytPCb1AnQmIpWcsl8bF'
-    url = f'https://drive.google.com/uc?id={file_id}'
-    gdown.download(url, XRAY_MODEL_PATH, quiet=False)
-    print("Download complete!")
+# No gdown.download() block needed anymore!
 
 # ===============================
 # 3. LOAD BOTH MODELS (NUCLEAR OPTION)
@@ -49,30 +36,13 @@ try:
 except Exception as e:
     print(f"❌ Risk model error: {e}")
 
-# 2. THE NUCLEAR FIX: Manually define the layers to bypass the metadata bug
-def build_model_manually():
-    from keras import layers, Sequential
-    m = Sequential([
-        layers.Input(shape=(224, 224, 3)),
-        layers.Conv2D(32, (3, 3), activation='relu'),
-        layers.MaxPooling2D((2, 2)),
-        layers.Conv2D(64, (3, 3), activation='relu'),
-        layers.MaxPooling2D((2, 2)),
-        layers.Conv2D(128, (3, 3), activation='relu'),
-        layers.MaxPooling2D((2, 2)),
-        layers.Flatten(),
-        layers.Dense(128, activation='relu'),
-        layers.Dense(1, activation='sigmoid')
-    ])
-    return m
 
-try:
-    # Instead of load_model (which crashes), we build a fresh one and just slide the weights in
-    cnn_model = build_model_manually()
-    cnn_model.load_weights(XRAY_MODEL_PATH)
-    print("✅ X-Ray model loaded successfully via weight-injection!")
-except Exception as e:
-    print(f"❌ Final attempt error: {e}")
+# 2. TFLite Interpreter Helper
+def get_interpreter():
+    # This loads the 30MB model into a tiny fraction of RAM
+    interpreter = tflite.Interpreter(model_path=XRAY_MODEL_PATH)
+    interpreter.allocate_tensors()
+    return interpreter
 
 # ===============================
 # API & HELPER FUNCTIONS
@@ -120,25 +90,29 @@ def get_precautions(score):
     else:
         return ["Consult doctor", "X-ray recommended", "Monitor breathing"]
 
-
 def predict_xray(path):
-    import gc
-    from PIL import Image
     try:
-        # 1. Open image with Pillow (lighter than Keras image loader)
+        # Load the interpreter only when a user uploads an image
+        interpreter = get_interpreter()
+        input_details = interpreter.get_input_details()
+        output_details = interpreter.get_output_details()
+
+        # Process with Pillow (Very low RAM footprint)
         with Image.open(path) as img:
             img = img.convert('RGB').resize((224, 224))
-            # Convert to float32 immediately to save space
             img_array = np.array(img, dtype=np.float32) / 255.0
             img_array = np.expand_dims(img_array, axis=0)
 
-        # 2. Predict with verbose=0 to stop logging overhead
-        prediction = float(cnn_model.predict(img_array, verbose=0)[0][0])
+        # Run Inference
+        interpreter.set_tensor(input_details[0]['index'], img_array)
+        interpreter.invoke()
 
-        # 3. NUCLEAR CLEANUP: Delete arrays and force garbage collection
+        # Get result from the output tensor
+        prediction = float(interpreter.get_tensor(output_details[0]['index'])[0][0])
+
+        # Immediate cleanup to free RAM for the next request
         del img_array
         gc.collect()
-        keras.backend.clear_session()
 
         return prediction
     except Exception as e:
