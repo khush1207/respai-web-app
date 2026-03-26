@@ -41,32 +41,30 @@ if not os.path.exists(XRAY_MODEL_PATH):
 # 3. LOAD BOTH MODELS SAFELY
 # ===============================
 
-# ===============================
-# 3. LOAD BOTH MODELS SAFELY
-# ===============================
-
-# 1. Load the Risk Model (This part works fine)
+# 1. Load the Risk Model (This already works)
 try:
     risk_model = joblib.load(RISK_MODEL_PATH)
     print("✅ Risk model loaded successfully!")
 except Exception as e:
     print(f"❌ Error loading Risk model: {e}")
 
-# 2. Load the X-Ray Model (The stubborn part)
+# 2. THE FIX: Create a "Safe" Dense layer to ignore the bad metadata
+class SafeDense(keras.layers.Dense):
+    def __init__(self, **kwargs):
+        # This removes the problematic 'quantization_config' before it reaches the layer
+        kwargs.pop('quantization_config', None)
+        super().__init__(**kwargs)
+
 try:
-    # This specifically tells Keras to ignore the 'quantization_config' and other new metadata
-    from keras.src.saving import registration
-    with registration.SkipRegistration():
-        cnn_model = load_model(XRAY_MODEL_PATH, compile=False, safe_mode=False)
-    print("✅ X-Ray model loaded successfully!")
+    # We pass SafeDense as a replacement for the standard Dense layer
+    cnn_model = load_model(
+        XRAY_MODEL_PATH,
+        compile=False,
+        custom_objects={"Dense": SafeDense}
+    )
+    print("✅ X-Ray model loaded successfully via SafeDense!")
 except Exception as e:
-    # If the above still fails, we use the "Brute Force" loader
-    try:
-        import keras
-        cnn_model = keras.models.load_model(XRAY_MODEL_PATH, compile=False)
-        print("✅ X-Ray model loaded via fallback!")
-    except Exception as e2:
-        print(f"❌ Final Error loading X-Ray model: {e2}")
+    print(f"❌ Final Error loading X-Ray model: {e}")
 
 # ===============================
 # API & HELPER FUNCTIONS
