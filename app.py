@@ -90,34 +90,46 @@ def get_precautions(score):
     else:
         return ["Consult doctor", "X-ray recommended", "Monitor breathing"]
 
+
 def predict_xray(path):
     try:
-        # Load the interpreter only when a user uploads an image
         interpreter = get_interpreter()
         input_details = interpreter.get_input_details()
         output_details = interpreter.get_output_details()
 
-        # Process with Pillow (Very low RAM footprint)
+        # Process with Pillow
         with Image.open(path) as img:
             img = img.convert('RGB').resize((224, 224))
-            img_array = np.array(img, dtype=np.float32) / 255.0
+            img_array = np.array(img)
+
+            # CRITICAL FIX: Match the expected data type of the TFLite model
+            expected_dtype = input_details[0]['dtype']
+
+            if expected_dtype == np.float32:
+                img_array = img_array.astype(np.float32) / 255.0
+            elif expected_dtype == np.uint8:
+                img_array = img_array.astype(np.uint8)
+            else:
+                img_array = img_array.astype(expected_dtype)
+
             img_array = np.expand_dims(img_array, axis=0)
 
         # Run Inference
         interpreter.set_tensor(input_details[0]['index'], img_array)
         interpreter.invoke()
 
-        # Get result from the output tensor
+        # Get result
         prediction = float(interpreter.get_tensor(output_details[0]['index'])[0][0])
 
-        # Immediate cleanup to free RAM for the next request
+        # Cleanup
         del img_array
         gc.collect()
 
         return prediction
+
     except Exception as e:
-        print(f"Prediction error: {e}")
-        return 0.5
+        print(f"❌ X-RAY INFERENCE ERROR: {e}")
+        return None  # Return None instead of 0.5 so we know it failed
 
 
 def build_features(prev_day, curr_day):
@@ -260,11 +272,15 @@ def day3():
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             xray_file.save(filepath)
 
-            raw_pneumonia = float(predict_xray(filepath))
-            raw_asthma = 1.0 - raw_pneumonia
-            risk_multiplier = min(max(risk3 / 10.0, 0.1), 1.0)
-            pneumonia_prob = raw_pneumonia * risk_multiplier
-            asthma_prob = raw_asthma * risk_multiplier
+            raw_pneumonia = predict_xray(filepath)
+
+            if raw_pneumonia is None:
+                flash("Error processing the X-ray image. Check the server console.", "danger")
+                return redirect(url_for('day3'))
+
+            # Keep the pure probabilities so they equal 100%
+            pneumonia_prob = raw_pneumonia
+            asthma_prob = 1.0 - raw_pneumonia
 
             if pneumonia_prob >= 0.5 or asthma_prob >= 0.5:
                 disease = "Abnormal"
