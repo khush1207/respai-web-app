@@ -38,33 +38,40 @@ if not os.path.exists(XRAY_MODEL_PATH):
     print("Download complete!")
 
 # ===============================
-# 3. LOAD BOTH MODELS SAFELY
+# 3. LOAD BOTH MODELS (NUCLEAR OPTION)
 # ===============================
 
-# 1. Load the Risk Model (This already works)
+# 1. Load Risk Model
 try:
     risk_model = joblib.load(RISK_MODEL_PATH)
     print("✅ Risk model loaded successfully!")
 except Exception as e:
-    print(f"❌ Error loading Risk model: {e}")
+    print(f"❌ Risk model error: {e}")
 
-# 2. THE FIX: Create a "Safe" Dense layer to ignore the bad metadata
-class SafeDense(keras.layers.Dense):
-    def __init__(self, **kwargs):
-        # This removes the problematic 'quantization_config' before it reaches the layer
-        kwargs.pop('quantization_config', None)
-        super().__init__(**kwargs)
+# 2. THE NUCLEAR FIX: Manually define the layers to bypass the metadata bug
+def build_model_manually():
+    from keras import layers, Sequential
+    m = Sequential([
+        layers.Input(shape=(224, 224, 3)),
+        layers.Conv2D(32, (3, 3), activation='relu'),
+        layers.MaxPooling2D((2, 2)),
+        layers.Conv2D(64, (3, 3), activation='relu'),
+        layers.MaxPooling2D((2, 2)),
+        layers.Conv2D(128, (3, 3), activation='relu'),
+        layers.MaxPooling2D((2, 2)),
+        layers.Flatten(),
+        layers.Dense(128, activation='relu'),
+        layers.Dense(1, activation='sigmoid')
+    ])
+    return m
 
 try:
-    # We pass SafeDense as a replacement for the standard Dense layer
-    cnn_model = load_model(
-        XRAY_MODEL_PATH,
-        compile=False,
-        custom_objects={"Dense": SafeDense}
-    )
-    print("✅ X-Ray model loaded successfully via SafeDense!")
+    # Instead of load_model (which crashes), we build a fresh one and just slide the weights in
+    cnn_model = build_model_manually()
+    cnn_model.load_weights(XRAY_MODEL_PATH)
+    print("✅ X-Ray model loaded successfully via weight-injection!")
 except Exception as e:
-    print(f"❌ Final Error loading X-Ray model: {e}")
+    print(f"❌ Final attempt error: {e}")
 
 # ===============================
 # API & HELPER FUNCTIONS
