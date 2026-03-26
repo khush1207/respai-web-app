@@ -1,5 +1,6 @@
 import os
 os.environ["TF_USE_LEGACY_KERAS"] = "1"
+
 import json
 import numpy as np
 import requests
@@ -7,12 +8,18 @@ import joblib
 from flask import Flask, render_template, request, redirect, url_for, flash
 from werkzeug.utils import secure_filename
 import tensorflow as tf
-from tensorflow import keras
 import gdown
 
-# These aliases make sure the rest of your code (like load_model() and image.load_img()) still works perfectly
-load_model = tf.keras.models.load_model
-image = tf.keras.preprocessing.image
+# This is the "Bridge" that fixes the ImportError
+try:
+    import tf_keras
+    load_model = tf_keras.models.load_model
+    image = tf_keras.preprocessing.image
+    print("✅ Legacy Keras Bridge loaded!")
+except ImportError:
+    import tensorflow.keras as keras
+    load_model = keras.models.load_model
+    image = keras.preprocessing.image
 
 app = Flask(__name__)
 app.secret_key = "super_secret_key"
