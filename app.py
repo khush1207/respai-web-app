@@ -121,10 +121,21 @@ def get_precautions(score):
 
 
 def predict_xray(path):
-    img = image.load_img(path, target_size=(224, 224))
-    img = image.img_to_array(img) / 255.0
-    img = np.expand_dims(img, axis=0)
-    return cnn_model.predict(img)[0][0]
+    import gc  # Garbage collector
+    try:
+        img = image.load_img(path, target_size=(224, 224))
+        img = image.img_to_array(img) / 255.0
+        img = np.expand_dims(img, axis=0)
+        prediction = float(cnn_model.predict(img)[0][0])
+
+        # Manually clear memory after prediction
+        gc.collect()
+        keras.backend.clear_session()
+
+        return prediction
+    except Exception as e:
+        print(f"Prediction error: {e}")
+        return 0.5
 
 
 def build_features(prev_day, curr_day):
