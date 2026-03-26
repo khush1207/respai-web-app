@@ -121,17 +121,21 @@ def get_precautions(score):
 
 
 def predict_xray(path):
-    import gc  # Garbage collector
+    import gc
+    from PIL import Image
     try:
-        img = image.load_img(path, target_size=(224, 224))
-        img = image.img_to_array(img) / 255.0
-        img = np.expand_dims(img, axis=0)
-        prediction = float(cnn_model.predict(img)[0][0])
+        # Open and resize using Pillow directly (uses less RAM than keras.preprocessing)
+        with Image.open(path) as img_raw:
+            img_resized = img_raw.convert('RGB').resize((224, 224))
+            img_array = np.array(img_resized) / 255.0
+            img_array = np.expand_dims(img_array, axis=0).astype(np.float32)
 
-        # Manually clear memory after prediction
+        # Run prediction
+        prediction = float(cnn_model.predict(img_array, verbose=0)[0][0])
+
+        # Aggressive Cleanup
+        del img_array
         gc.collect()
-        keras.backend.clear_session()
-
         return prediction
     except Exception as e:
         print(f"Prediction error: {e}")
