@@ -49,6 +49,16 @@
     {% endif %}
 
     <button type="submit" class="btn btn-primary w-100 py-3 fw-bold shadow-sm fs-5" style="background-color: #0F4C75; border: none;">Run Final Prediction</button>
+    <div id="loading-message" style="display:none; color: blue; font-weight: bold;">
+    Processing X-Ray... This may take up to 60 seconds. Please do not refresh.
+</div>
+
+<script>
+    document.querySelector('form').onsubmit = function() {
+        document.getElementById('loading-message').style.display = 'block';
+        this.querySelector('button[type="submit"]').disabled = true;
+    };
+</script>
 </form>
 
 <script>

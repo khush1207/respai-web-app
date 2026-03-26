@@ -125,18 +125,21 @@ def predict_xray(path):
     import gc
     from PIL import Image
     try:
-        # Open and resize using Pillow directly (uses less RAM than keras.preprocessing)
-        with Image.open(path) as img_raw:
-            img_resized = img_raw.convert('RGB').resize((224, 224))
-            img_array = np.array(img_resized) / 255.0
-            img_array = np.expand_dims(img_array, axis=0).astype(np.float32)
+        # 1. Open image with Pillow (lighter than Keras image loader)
+        with Image.open(path) as img:
+            img = img.convert('RGB').resize((224, 224))
+            # Convert to float32 immediately to save space
+            img_array = np.array(img, dtype=np.float32) / 255.0
+            img_array = np.expand_dims(img_array, axis=0)
 
-        # Run prediction
+        # 2. Predict with verbose=0 to stop logging overhead
         prediction = float(cnn_model.predict(img_array, verbose=0)[0][0])
 
-        # Aggressive Cleanup
+        # 3. NUCLEAR CLEANUP: Delete arrays and force garbage collection
         del img_array
         gc.collect()
+        keras.backend.clear_session()
+
         return prediction
     except Exception as e:
         print(f"Prediction error: {e}")
