@@ -41,20 +41,32 @@ if not os.path.exists(XRAY_MODEL_PATH):
 # 3. LOAD BOTH MODELS SAFELY
 # ===============================
 
-# 1. Load the Risk Model FIRST
+# ===============================
+# 3. LOAD BOTH MODELS SAFELY
+# ===============================
+
+# 1. Load the Risk Model (This part works fine)
 try:
     risk_model = joblib.load(RISK_MODEL_PATH)
     print("✅ Risk model loaded successfully!")
 except Exception as e:
     print(f"❌ Error loading Risk model: {e}")
 
-# 2. Load the X-Ray Model separately
+# 2. Load the X-Ray Model (The stubborn part)
 try:
-    # compile=False forces TensorFlow to ignore version mismatch configs
-    cnn_model = load_model(XRAY_MODEL_PATH, compile=False)
+    # This specifically tells Keras to ignore the 'quantization_config' and other new metadata
+    from keras.src.saving import registration
+    with registration.SkipRegistration():
+        cnn_model = load_model(XRAY_MODEL_PATH, compile=False, safe_mode=False)
     print("✅ X-Ray model loaded successfully!")
 except Exception as e:
-    print(f"❌ Error loading X-Ray model: {e}")
+    # If the above still fails, we use the "Brute Force" loader
+    try:
+        import keras
+        cnn_model = keras.models.load_model(XRAY_MODEL_PATH, compile=False)
+        print("✅ X-Ray model loaded via fallback!")
+    except Exception as e2:
+        print(f"❌ Final Error loading X-Ray model: {e2}")
 
 # ===============================
 # API & HELPER FUNCTIONS
