@@ -4,6 +4,6 @@ requests
 joblib
 tensorflow==2.16.1
 gunicorn
-scikit-learn==1.8.0
+scikit-learn==1.7.2
 Pillow
 Werkzeug
