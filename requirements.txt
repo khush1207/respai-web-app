@@ -3,7 +3,7 @@ numpy
 requests
 joblib
 tensorflow-cpu==2.16.0
-keras==3.3.3
+keras==3.0.0
 Werkzeug
 gunicorn
 gdown
