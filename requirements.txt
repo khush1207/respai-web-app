@@ -2,7 +2,8 @@ Flask
 numpy
 requests
 joblib
-tensorflow-cpu==2.13.0
+tensorflow-cpu==2.16.0
+keras==3.3.3
 Werkzeug
 gunicorn
 gdown

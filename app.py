@@ -1,13 +1,12 @@
 import os
-os.environ["TF_USE_LEGACY_KERAS"] = "1"
 import json
 import numpy as np
 import requests
 import joblib
 from flask import Flask, render_template, request, redirect, url_for, flash
 from werkzeug.utils import secure_filename
-from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing import image
+from keras.models import load_model
+from keras.preprocessing import image
 import gdown
 
 app = Flask(__name__)
@@ -21,7 +20,7 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 MODEL_DIR = "model"
 # Make sure your GitHub folder is named "model" (no 's')
 RISK_MODEL_PATH = os.path.join(MODEL_DIR, "risk_model.pkl")
-XRAY_MODEL_PATH = os.path.join(MODEL_DIR, "pneumonia_model.h5")
+XRAY_MODEL_PATH = os.path.join(MODEL_DIR, "pneumonia_model.keras")
 
 os.makedirs(MODEL_DIR, exist_ok=True)
 
@@ -30,7 +29,7 @@ os.makedirs(MODEL_DIR, exist_ok=True)
 # ===============================
 if not os.path.exists(XRAY_MODEL_PATH):
     print("Downloading heavy model from Google Drive...")
-    file_id = '1RNe0FkjhxbmQ1qeVtX5d2aQBW4K-sVOZ'
+    file_id = '1OKch6xQ4I-cF8ytPCb1AnQmIpWcsl8bF'
     url = f'https://drive.google.com/uc?id={file_id}'
     gdown.download(url, XRAY_MODEL_PATH, quiet=False)
     print("Download complete!")
