@@ -6,9 +6,13 @@ import requests
 import joblib
 from flask import Flask, render_template, request, redirect, url_for, flash
 from werkzeug.utils import secure_filename
-from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing import image
+import tensorflow as tf
+from tensorflow import keras
 import gdown
+
+# These aliases make sure the rest of your code (like load_model() and image.load_img()) still works perfectly
+load_model = tf.keras.models.load_model
+image = tf.keras.preprocessing.image
 
 app = Flask(__name__)
 app.secret_key = "super_secret_key"
