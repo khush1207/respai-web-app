@@ -1,15 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="alert shadow-sm mb-4" style="background-color: #F4F9F9; border: 1px solid #BBE1FA; border-left: 5px solid #3282B8;">
-    <h5 class="fw-bold mb-3" style="color: #0F4C75;">🩺 Initial Health Guidelines</h5>
-    <ul class="mb-0" style="line-height: 1.8;">
-        {% for pre in precautions %}
-            <li>{{ pre }}</li>
-        {% endfor %}
-    </ul>
-</div>
-
 <form method="POST">
     <h4 class="mb-3 medical-title">Update Day 2 Symptoms</h4>
     {% include 'symptoms_snippet.html' %}
