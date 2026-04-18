@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="text-center mb-5">
+        <h1 class="display-4">Respiratory Health Tracker</h1>
+        <p class="lead">Monitor your symptoms over 3 days for AI-powered health insights.</p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-5 mb-4">
+            <div class="card shadow-sm h-100 text-center p-4">
+                <div class="card-body d-flex flex-column">
+                    <h3 class="card-title">New Patient</h3>
+                    <p class="card-text text-muted mb-4">Start a brand new 3-day respiratory tracking assessment. You will be given a Patient ID to save your progress.</p>
+                    <a href="{{ url_for('day1') }}" class="btn btn-primary mt-auto btn-lg">Start New Assessment</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-5 mb-4">
+            <div class="card shadow-sm h-100 p-4">
+                <div class="card-body">
+                    <h3 class="card-title text-center">Returning Patient</h3>
+                    <p class="card-text text-center text-muted">Enter your Patient ID to resume your daily tracking or view your final results.</p>
+
+                    <form action="{{ url_for('login') }}" method="POST" class="mt-4">
+                        <div class="form-group mb-3">
+                            <label for="patient_id" class="form-label fw-bold">Patient ID:</label>
+                            <input type="text" id="patient_id" name="patient_id" class="form-control form-control-lg" placeholder="e.g. a1b2c3d4" required>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100 btn-lg">Login</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
