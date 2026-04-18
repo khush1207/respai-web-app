@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5 text-center">
+    <div class="card shadow border-0 mx-auto" style="max-width: 650px; border-top: 5px solid #28a745 !important;">
+        <div class="card-body p-4 p-md-5">
+            <div class="mb-3">
+                <h1 style="font-size: 3.5rem; color: #28a745;">✅</h1>
+            </div>
+
+            <h2 class="medical-title mb-3">Assessment Saved</h2>
+
+            <p class="lead text-muted mb-4">
+                Thank you! Your symptoms for <strong>Day {{ day }}</strong> have been successfully recorded.
+            </p>
+
+            {% if risk %}
+            <div class="mb-4 pb-4 border-bottom border-2">
+                <h4 class="text-center mb-3 accent-title">Current Status (Day 2)</h4>
+
+                <div class="text-center mb-2 fs-5">
+                    Risk Status:
+                    {% if risk >= 7 %}
+                        <span class="badge bg-danger fs-6 shadow-sm">HIGH RISK</span>
+                    {% elif risk >= 4 %}
+                        <span class="badge bg-warning text-dark fs-6 shadow-sm">MODERATE RISK</span>
+                    {% else %}
+                        <span class="badge bg-success fs-6 shadow-sm">LOW RISK</span>
+                    {% endif %}
+                </div>
+
+                <div class="d-flex justify-content-center w-100 mt-4 mb-3">
+                    <div id="gauge_chart_day2"></div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="alert shadow-sm text-start mx-auto mb-4" style="background-color: #F4F9F9; border: 1px solid #BBE1FA; border-left: 5px solid #3282B8;">
+                <h5 class="fw-bold mb-3" style="color: #0F4C75;">🩺 Recommended Precautions</h5>
+                <ul class="mb-0" style="line-height: 1.6;">
+                    {% for p in precautions %}
+                        <li>{{ p }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div class="alert alert-secondary py-3 mb-4 shadow-sm">
+                <p class="mb-0 fw-bold">Please return tomorrow, click "Returning Patient", and enter your Patient ID to complete the next step.</p>
+            </div>
+
+            <a href="{{ url_for('logout') }}" class="btn btn-primary btn-lg px-5 shadow-sm fw-bold">Save & Logout Now</a>
+            <p class="text-muted small mt-3">For your privacy, you will be automatically logged out after 15 minutes of inactivity.</p>
+        </div>
+    </div>
+</div>
+
+{% if risk %}
+<script>
+  google.charts.load('current', {'packages':['gauge']});
+  google.charts.setOnLoadCallback(drawChartDay2);
+
+  function drawChartDay2() {
+    var data = google.visualization.arrayToDataTable([
+      ['Label', 'Value'],
+      ['', {{ risk }}]
+    ]);
+
+    var options = {
+      width: 250, height: 160,
+      redFrom: 7, redTo: 10,
+      yellowFrom: 4, yellowTo: 7,
+      greenFrom: 0, greenTo: 4,
+      minorTicks: 1,
+      max: 10
+    };
+
+    var chart = new google.visualization.Gauge(document.getElementById('gauge_chart_day2'));
+    chart.draw(data, options);
+  }
+</script>
+{% endif %}
+{% endblock %}
