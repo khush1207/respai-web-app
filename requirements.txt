@@ -1,9 +1,10 @@
 Flask
-numpy
+Flask-SQLAlchemy
+numpy<2.0.0
 requests
 joblib
-tensorflow==2.16.1
-gunicorn
-scikit-learn==1.7.2
 Pillow
+tensorflow<2.16.0
+scikit-learn
+scipy
 Werkzeug
