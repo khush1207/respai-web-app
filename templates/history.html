@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4 text-center medical-title">Medical History for {{ patient.name }}</h2>
+
+    {% if records %}
+        <div class="row">
+            {% for record in records %}
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm border-0" style="border-top: 4px solid #0F4C75 !important;">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <strong class="text-secondary">Date: {{ record.date.strftime('%B %d, %Y') }}</strong>
+                        <span class="badge bg-dark">Risk: {{ record.risk_score|round(1) }}/10</span>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">Condition:
+                            <span class="badge {% if record.disease_prediction == 'Normal' %}bg-success{% else %}bg-danger{% endif %} fs-6">
+                                {{ record.disease_prediction }}
+                            </span>
+                        </h5>
+
+                        {% if record.env_data.pneumonia_prob %}
+                            <p class="mb-1"><strong>Pneumonia Probability:</strong> {{ (record.env_data.pneumonia_prob * 100)|round(1) }}%</p>
+                        {% endif %}
+                        {% if record.env_data.asthma_prob %}
+                            <p class="mb-0"><strong>Asthma Probability:</strong> {{ (record.env_data.asthma_prob * 100)|round(1) }}%</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info text-center py-4">
+            <h5 class="mb-0">You do not have any completed 3-day assessments yet.</h5>
+        </div>
+    {% endif %}
+
+    <div class="text-center mt-4">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary shadow-sm px-4">← Return Home</a>
+    </div>
+</div>
+{% endblock %}
