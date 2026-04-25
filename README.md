@@ -15,3 +15,4 @@ Instead of requiring an immediate X-ray, the system tracks a patient's symptoms 
 * **AI Models:** TensorFlow Lite (X-rays), Scikit-Learn (Symptoms)
 * **Database:** SQLite
 * **Frontend:** HTML, Bootstrap
+Updated by Khushi
